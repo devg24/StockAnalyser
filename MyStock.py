@@ -2,29 +2,57 @@
 import yfinance as yf
 import pandas as pd
 import numpy as np
+import fredpy as fp
 from sklearn.decomposition import PCA
 
+fp.api_key = "a26fb8894bba0b65740f6342c151c827"
 
-# get all companies from dataset
-df_companies = pd.read_excel("Company Names and Ticker Symbols/yahootickers.xlsx",sheet_name= "Stock",skiprows=3,usecols=["Ticker","Name","Exchange","Category Name"])
-df_companies.dropna(inplace=True)
-start = "2010-01-01"
-end = "2011-01-01"
-stocks = []
-for i in range(0,1,100):
-    df_stock = yf.download(df_companies["Ticker"].tolist()[i:i+100],start=start,end=end,group_by="ticker")
-    stocks.append(df_stock)
-    # save to csv
-    # df_stock.to_csv("Stocks/{}.csv".format(i))
-df_stock = pd.concat(stocks)
-print(df_stock.head())
+dataset = "Company Names and Ticker Symbols/yahootickers.xlsx"
+cols = ["Ticker","Name","Exchange","Category Name"]
+def get_data(dataset, start, end, cols):
+    '''
+    @param dataset: path to dataset
+    @param start: start date
+    @param end: end date
+    @param cols: columns to read from dataset
 
+    @return df_companies: dataframe of companies
+    @return df_stocks: dataframe of stocks
+    get all companies from dataset
 
-# perform pca on stocks
-# pca = PCA(n_components=10)
-# pca.fit(df_stock)
-# df_pca = pd.DataFrame(pca.transform(df_stock),columns=["PC1","PC2","PC3","PC4","PC5","PC6","PC7","PC8","PC9","PC10"])
-# print(df_pca.head())
+    '''
+    df_companies = pd.read_excel(dataset,sheet_name= "Stock",skiprows=3,usecols=cols)
+    df_companies.dropna(inplace=True)
+    stocks = []
+    for i in range(0,len(df_companies),100):
+        df_stock = yf.download(df_companies["Ticker"].tolist()[i:i+100],start=start,end=end)
+        stocks.append(df_stock)
+        # save to csv
+        # df_stock.to_csv("Stocks/{}.csv".format(i))
+    df_stock = pd.concat(stocks)
+    df_stock = df_stock[["Adj Close"]]
+    df_stock.columns = df_stock.columns.droplevel(0)
+    print(df_stock.head())
+    return df_companies, df_stock
+
+def perform_pca(X_train, Y_train, n_components):
+    '''
+    @param X_train: training features
+    @param Y_train: training labels
+
+    @return pca: pca object
+    @return X_train_pca: training features after pca
+    @return Y_train_pca: training labels after pca
+    perform pca on training data
+
+    '''
+    pca = PCA(n_components=n_components)
+    X_train_pca = pca.fit_transform(X_train)
+    Y_train_pca = pca.fit_transform(Y_train)
+    return pca, X_train_pca, Y_train_pca
+
+df_companies, df_stocks = get_data(dataset, "2019-01-01", "2020-01-01", cols)
+
 
 
 
