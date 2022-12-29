@@ -2,10 +2,9 @@
 import yfinance as yf
 import pandas as pd
 import numpy as np
-import fredpy as fp
+import utils
 from sklearn.decomposition import PCA
 
-fp.api_key = "a26fb8894bba0b65740f6342c151c827"
 
 dataset = "Company Names and Ticker Symbols/yahootickers.xlsx"
 cols = ["Ticker","Name","Exchange","Category Name"]
