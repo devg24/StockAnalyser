@@ -2,6 +2,7 @@ import pandas as pd
 from full_fred.fred import Fred
 import numpy as np
 from functools import reduce
+import datetime as dt
 
 
 
@@ -45,6 +46,15 @@ def combine_datasets(data, on='date', exclude=["realtime_start","realtime_end"])
     df = reduce(lambda left,right: pd.merge(left,right,on=on), datasets)
     return df
 
+def remove_day_from_date(datasets):
+    '''
+    @param datasets: list of dataframes
+    @return datasets: list of dataframes with date column without day
+    '''
+    for key in datasets:
+        key["date"] = pd.to_datetime(key["date"])
+        key["date"] = key["date"].dt.strftime("%Y-%m")
+    return datasets
 
 
 

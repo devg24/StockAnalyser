@@ -86,12 +86,15 @@ df_mei = utils.get_mei(start=start_date, end=end_date, limit=LIMIT, offset=OFFSE
 OFFSET += LIMIT
 df = utils.combine_datasets(df_mei)
 
+datasets = [df, df_stocks]
 
-print(df.head())
+datasets = utils.remove_day_from_date(datasets)
 
-print(df_companies.head())
+df_combined = reduce(lambda left,right: pd.merge(left,right,on='date'), datasets)
 
-print(df_stocks.head())
+print(df_combined.head())
+
+
 
 
 
