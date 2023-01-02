@@ -53,31 +53,42 @@ def get_data(dataset, start, end, cols):
 
     return df_companies, df_stock
 
-def perform_pca(X_train, Y_train):
+def perform_pca(market_data):
     '''
-    @param X_train: training features
-    @param Y_train: training labels
+    @param market_data: dataframe of market data
 
-    @return pca: pca object
-    @return X_train_pca: training features after pca
-    @return Y_train_pca: training labels after pca
-    perform pca on training data
-
+    @return x: Dataframe of scaled and pca transformed data
     '''
-    pca = PCA(0.95)
-    X = X_train.loc[:, X_train.columns != "date"].values()
-    x = StandardScaler().fit_transform(X)
-    Y = Y_train.loc[:, "Adj Close"].values()
-    pca.fit(x)
-    n_components = pca.n_components_
+    print("Scalling data...")
+    scaler = StandardScaler()
 
-    X_train_pca = pca.transform(x)
+    x_data = market_data.drop(columns=['date'])
+    x = market_data.drop(columns=['date'])
 
-    x_df = pd.DataFrame(data = X_train_pca, columns = ["PC{}".format(i) for i in range(1,n_components+1)])
+    x = scaler.fit_transform(x)
+    print("Performing PCA...")
+    pca = PCA(0.90)
+    x = pca.fit_transform(x)
 
-    to_return  = pd.concat([Y_train["Adj Close"],x_df], axis=1)
+    pca_components = abs(pca.components_)
+    # # print top relevant features
+    for row in range(pca_components.shape[0]):
+        # get the indices of the top 4 values in each row
+        temp = np.argpartition(-(pca_components[row]), 4)
+        
+        # sort the indices in descending order
+        indices = temp[np.argsort((-pca_components[row])[temp])][:4]
+        
+        # print the top 4 feature names
+        print(f'Component {row}: {x_data.columns[indices].to_list()}')
 
+    to_return = pd.DataFrame(x)
     return to_return
+
+    
+
+
+
 
 start_date = "2018-01-01"
 end_date = "2020-01-01"
@@ -87,12 +98,15 @@ OFFSET += LIMIT
 df = utils.combine_datasets(df_mei)
 
 datasets = [df, df_stocks]
-
 datasets = utils.remove_day_from_date(datasets)
 
-df_combined = reduce(lambda left,right: pd.merge(left,right,on='date'), datasets)
+df_mei, df_stocks = datasets[0], datasets[1]
 
-print(df_combined.head())
+df_mei_reduced = perform_pca(df_mei)
+
+print(df_mei_reduced.head())
+
+
 
 
 
