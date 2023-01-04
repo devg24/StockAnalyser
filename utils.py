@@ -23,9 +23,17 @@ def get_mei(start=None,end=None, limit=LIMIT, offset=OFFSET):
         fred.observation_start = start
     if end:
         fred.observation_end = end
-    r = fred.get_series_matching_tags(["mei","monthly","usa"], limit=limit, offset=offset)
+    to_return=dict()
+    r = fred.get_series_matching_tags(["mei","monthly","usa", "all items"], limit=limit, offset=offset)
     datasets = r['seriess']
-    to_return  = {i['id'] : fred.get_series_df(i['id']) for i in datasets}
+    to_return  = to_return.update({i['id'] : fred.get_series_df(i['id']) for i in datasets})
+
+    #remove keys with same title
+    titles = {i["title"] for i in datasets}
+
+    to_return = {key: to_return[key] for key in to_return if get_name_from_id(key) not in titles}
+
+    # print(to_return.keys())
     return to_return
 
 def combine_datasets(data, on='date', exclude=["realtime_start","realtime_end"]):
@@ -58,10 +66,18 @@ def remove_day_from_date(datasets):
 
 
 
+def get_name_from_id(id):
+    '''
+    @param id: id of fred dataset
+    @return name: name of fred dataset
+    '''
+    return fred.get_a_series(id)["seriess"][0]["title"]
 
 
 
+# print(fred.get_all_tags(search_text="seasonally adjusted"))
 
+test = get_mei()
 
 
     

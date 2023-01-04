@@ -7,7 +7,7 @@ import requests
 import time
 from functools import reduce
 
-LIMIT = 10
+LIMIT = 20
 OFFSET = 0
 
 dataset = "Company Names and Ticker Symbols/yahootickers.xlsx"
@@ -80,7 +80,7 @@ def perform_pca(market_data):
         indices = temp[np.argsort((-pca_components[row])[temp])][:4]
         
         # print the top 4 feature names
-        print(f'Component {row}: {x_data.columns[indices].to_list()}')
+        print(f'Component {row}: {[utils.get_name_from_id(i) for i in x_data.columns[indices].to_list()]}')
 
     to_return = pd.DataFrame(x)
     return to_return
