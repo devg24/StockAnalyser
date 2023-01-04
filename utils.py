@@ -15,7 +15,7 @@ def get_mei(start=None,end=None, limit=LIMIT, offset=OFFSET):
     @param start: start date
     @param end: end date
 
-    @return to_return: list of dataframes of mei
+    @return to_return: dict of dataframes of mei mapping id to dataframe
     get Main Economic Indicators from fred
     '''
 
@@ -23,33 +23,30 @@ def get_mei(start=None,end=None, limit=LIMIT, offset=OFFSET):
         fred.observation_start = start
     if end:
         fred.observation_end = end
-    to_return=dict()
-    r = fred.get_series_matching_tags(["mei","monthly","usa", "all items"], limit=limit, offset=offset)
+    r = fred.get_series_matching_tags(["mei","monthly","usa"], limit=limit, offset=offset)
     datasets = r['seriess']
-    to_return  = to_return.update({i['id'] : fred.get_series_df(i['id']) for i in datasets})
+    to_return  ={i['id'] : fred.get_series_df(i['id']) for i in datasets}
 
-    #remove keys with same title
-    titles = {i["title"] for i in datasets}
-
-    to_return = {key: to_return[key] for key in to_return if get_name_from_id(key) not in titles}
-
-    # print(to_return.keys())
     return to_return
 
 def combine_datasets(data, on='date', exclude=["realtime_start","realtime_end"]):
     '''
     @param data: list of dataframes
     
-    @return df: dataframe of all dataframes
+    @return df: dataframe of all merged dataframes
     '''
     datasets = []
     for key in data:
-        if "date" not in data[key].columns:
+        if "date" not in data[key].columns or data[key].shape[0] < 120:
             continue
+
         data[key].rename(columns={"value": key}, inplace=True)
         data[key].drop(columns=exclude, inplace=True, errors = "ignore")
+        print(data[key].shape)
         datasets.append(data[key])
+
     
+    datasets = remove_day_from_date(datasets)
     
     df = reduce(lambda left,right: pd.merge(left,right,on=on), datasets)
     return df
@@ -77,7 +74,6 @@ def get_name_from_id(id):
 
 # print(fred.get_all_tags(search_text="seasonally adjusted"))
 
-test = get_mei()
 
 
     
