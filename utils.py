@@ -42,7 +42,6 @@ def combine_datasets(data, on='date', exclude=["realtime_start","realtime_end"])
 
         data[key].rename(columns={"value": key}, inplace=True)
         data[key].drop(columns=exclude, inplace=True, errors = "ignore")
-        print(data[key].shape)
         datasets.append(data[key])
 
     

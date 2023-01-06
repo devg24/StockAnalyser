@@ -55,12 +55,13 @@ def get_data(dataset, start, end, cols):
         # time.sleep(65)
         # save to csv
         # df_stock.to_csv("Stocks/{}.csv".format(i))
+    stocks = utils.remove_day_from_date(stocks)
     df_stock = reduce(lambda left,right: pd.merge(left,right,on='date'), stocks)
     
 
     return df_companies, df_stock
 
-def perform_pca(market_data):
+def perform_pca(market_data, print_top_features=True):
     '''
     @param market_data: dataframe of market data
 
@@ -79,17 +80,21 @@ def perform_pca(market_data):
 
     pca_components = abs(pca.components_)
     # # print top relevant features
-    for row in range(pca_components.shape[0]):
-        # get the indices of the top 4 values in each row
-        temp = np.argpartition(-(pca_components[row]), 4)
-        
-        # sort the indices in descending order
-        indices = temp[np.argsort((-pca_components[row])[temp])][:4]
-        
-        # print the top 4 feature names
-        print(f'Component {row}: {[utils.get_name_from_id(i) for i in x_data.columns[indices].to_list()]}')
+    if print_top_features:
+        for row in range(pca_components.shape[0]):
+            # get the indices of the top 4 values in each row
+            temp = np.argpartition(-(pca_components[row]), 4)
+            
+            # sort the indices in descending order
+            indices = temp[np.argsort((-pca_components[row])[temp])][:4]
+            
+            # print the top 4 feature names
+            print(f'Component {row}: {[utils.get_name_from_id(i) for i in x_data.columns[indices].to_list()]}')
 
     to_return = pd.DataFrame(x)
+
+    # add date column back
+    to_return['date'] = market_data['date']
     return to_return
 
     
@@ -103,7 +108,7 @@ def main():
     end_date = "2020-01-01"
     df_companies, df_stocks = get_data(dataset, start=start_date, end=end_date, cols=cols)
     dfs = []
-    for i in range(3):
+    for i in range(10):
         df_mei = utils.get_mei(start=start_date, end=end_date, limit=LIMIT, offset=OFFSET)
         OFFSET += LIMIT
         dfs.append(utils.combine_datasets(df_mei))
@@ -112,21 +117,48 @@ def main():
 
     df = reduce(lambda left,right: pd.merge(left,right,on="date"), dfs)
 
-    print(df.shape)
+    df_mei_reduced = perform_pca(df,False)
 
-    datasets = [df, df_stocks]
-    datasets = utils.remove_day_from_date(datasets)
+    df_mei_reduced = df_mei_reduced[df_mei_reduced['date'] >= df_stocks['date'].min()]
 
-    df_mei, df_stocks = datasets[0], datasets[1]
+    df_mei_reduced = df_mei_reduced[df_mei_reduced['date'] <= df_stocks['date'].max()]
 
-    df_mei_reduced = perform_pca(df_mei)
+    # cast all columns of df_stocks to float except date 
+    df_stocks = df_stocks.astype({col: 'float64' for col in df_stocks.columns if col != 'date'})
+
+    print(df_stocks.dtypes)
+
 
     X_train, X_test, y_train, y_test = train_test_split(df_mei_reduced, df_stocks, test_size=0.2, random_state=42 ,shuffle=True)
 
-    print(X_train.shape)
-    print(X_test.shape)
-    print(y_train.shape)
-    print(y_test.shape)
+
+    X_train = X_train.drop(columns=['date'])
+    X_test = X_test.drop(columns=['date'])
+    y_train = y_train.drop(columns=['date'])
+    y_test = y_test.drop(columns=['date'])
+
+    print(X_train.shape, type(X_train))
+    print(X_test.shape, type(X_test))
+    print(y_train.shape, type(y_train))
+    print(y_test.shape, type(y_test))
+
+    tf.keras.backend.clear_session()
+    model = tf.keras.models.Sequential()
+    # add input layer
+    model.add(tf.keras.layers.Dense(100, input_dim=X_train.shape[1], activation='relu'))
+
+    # add hidden layers
+    # model.add(tf.keras.layers.Dense(100, activation='relu'))
+    # model.add(tf.keras.layers.Dense(100, activation='relu'))
+
+    # add output layer
+    model.add(tf.keras.layers.Dense(y_train.shape[1], activation='softmax'))
+
+    model.compile(loss="mean_squared_error", optimizer='adam', metrics=['accuracy'])
+
+    model.fit(X_train, y_train, epochs=100, batch_size=10, verbose=1)
+
+    model.evaluate(X_test, y_test, verbose=1)
 
     
 
