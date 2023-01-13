@@ -98,24 +98,30 @@ def perform_pca(market_data, print_top_features=True):
     return to_return
 
     
-
-
-def main():
+def get_mei_data(start_date, end_date):
+    
     global OFFSET
     global LIMIT
+    dfs = []
+    df_mei = utils.get_mei(start=start_date, end=end_date, limit=LIMIT, offset=OFFSET)
+    i = 0
+    while df_mei is not None and i < 20:
+        OFFSET += LIMIT
+        dfs.append(utils.combine_datasets(df_mei))
+        df_mei = utils.get_mei(start=start_date, end=end_date, limit=LIMIT, offset=OFFSET)
+        print("Done with {} datasets".format(20*(i+1)))
+        i += 1
+    df = reduce(lambda left,right: pd.merge(left,right,on="date"), dfs)
+    return df
+
+def main():
 
     start_date = "2010-01-01"
     end_date = "2020-01-01"
-    df_companies, df_stocks = get_data(dataset, start=start_date, end=end_date, cols=cols)
-    dfs = []
-    for i in range(10):
-        df_mei = utils.get_mei(start=start_date, end=end_date, limit=LIMIT, offset=OFFSET)
-        OFFSET += LIMIT
-        dfs.append(utils.combine_datasets(df_mei))
-        print("Done with {} datasets".format(20*(i+1)))
-    
 
-    df = reduce(lambda left,right: pd.merge(left,right,on="date"), dfs)
+    df_companies, df_stocks = get_data(dataset, start=start_date, end=end_date, cols=cols)
+
+    df = get_mei_data(start_date, end_date)
 
     df_mei_reduced = perform_pca(df,False)
 
@@ -158,7 +164,18 @@ def main():
 
     model.fit(X_train, y_train, epochs=100, batch_size=10, verbose=1)
 
-    model.evaluate(X_test, y_test, verbose=1)
+    temp , df_stocks_test = get_data(dataset, start="2020-01-01", end="2022-01-01", cols=cols)
+    df_mei_test = get_mei_data("2020-01-01", "2022-01-01")
+    df_mei_test = perform_pca(df_mei_test, False)
+    df_mei_test = df_mei_test[df_mei_test['date'] >= df_stocks_test['date'].min()]
+    df_mei_test = df_mei_test[df_mei_test['date'] <= df_stocks_test['date'].max()]
+    df_mei_test = df_mei_test.drop(columns=['date'])
+    df_stocks_test = df_stocks_test.astype({col: 'float64' for col in df_stocks_test.columns if col != 'date'})
+    df_stocks_test = df_stocks_test.drop(columns=['date'])
+
+    
+
+    model.evaluate(df_mei_test, df_stocks_test, verbose=1)
 
     
 
@@ -168,15 +185,4 @@ def main():
 
 if __name__ == "__main__":
     main()
-
-
-
-
-
-
-
-
-
-
-
 
