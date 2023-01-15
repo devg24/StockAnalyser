@@ -163,19 +163,20 @@ def main():
     model.compile(loss="mean_squared_error", optimizer='adam', metrics=['accuracy'])
 
     model.fit(X_train, y_train, epochs=100, batch_size=10, verbose=1)
+    model.evaluate(X_test, y_test)
 
-    temp , df_stocks_test = get_data(dataset, start="2020-01-01", end="2022-01-01", cols=cols)
-    df_mei_test = get_mei_data("2020-01-01", "2022-01-01")
-    df_mei_test = perform_pca(df_mei_test, False)
-    df_mei_test = df_mei_test[df_mei_test['date'] >= df_stocks_test['date'].min()]
-    df_mei_test = df_mei_test[df_mei_test['date'] <= df_stocks_test['date'].max()]
-    df_mei_test = df_mei_test.drop(columns=['date'])
-    df_stocks_test = df_stocks_test.astype({col: 'float64' for col in df_stocks_test.columns if col != 'date'})
-    df_stocks_test = df_stocks_test.drop(columns=['date'])
+    # temp , df_stocks_test = get_data(dataset, start="2020-01-01", end="2022-01-01", cols=cols)
+    # df_mei_test = get_mei_data("2020-01-01", "2022-01-01")
+    # df_mei_test = perform_pca(df_mei_test, False)
+    # df_mei_test = df_mei_test[df_mei_test['date'] >= df_stocks_test['date'].min()]
+    # df_mei_test = df_mei_test[df_mei_test['date'] <= df_stocks_test['date'].max()]
+    # df_mei_test = df_mei_test.drop(columns=['date'])
+    # df_stocks_test = df_stocks_test.astype({col: 'float64' for col in df_stocks_test.columns if col != 'date'})
+    # df_stocks_test = df_stocks_test.drop(columns=['date'])
 
     
 
-    model.evaluate(df_mei_test, df_stocks_test, verbose=1)
+    # model.evaluate(df_mei_test, df_stocks_test, verbose=1)
 
     
 

@@ -23,13 +23,17 @@ def get_mei(start=None,end=None, limit=LIMIT, offset=OFFSET):
         fred.observation_start = start
     if end:
         fred.observation_end = end
-    r = fred.get_series_matching_tags(["mei","monthly","usa"], limit=limit, offset=offset)
-    if "seriess" not in r:
-        return None
-    datasets = r['seriess']
-    to_return  ={i['id'] : fred.get_series_df(i['id']) for i in datasets}
+    try: 
+        r = fred.get_series_matching_tags(["mei","monthly","usa"], limit=limit, offset=offset)
+        print(r.keys())
+        if "seriess" not in r:
+            return None
+        datasets = r['seriess']
+        to_return  ={i['id'] : fred.get_series_df(i['id']) for i in datasets}
 
-    return to_return
+        return to_return
+    except:
+        return None
 
 def combine_datasets(data, on='date', exclude=["realtime_start","realtime_end"]):
     '''
