@@ -14,7 +14,7 @@ import requests
 import time
 from functools import reduce
 
-LIMIT = 20
+LIMIT = 1000
 OFFSET = 0
 
 dataset = "Company Names and Ticker Symbols/yahootickers.xlsx"
@@ -34,29 +34,29 @@ def get_data(dataset, start, end, cols):
     df_companies = pd.read_excel(dataset,sheet_name= "Stock",skiprows=3,usecols=cols)
     df_companies.dropna(inplace=True)
     stocks = []
-    # e = len(df_companies)
-    e = 5
-    for i in range(0,e//5, 5):
-        for j in range(i, i+5):
-            symbol = df_companies['Ticker'].to_list()[j]
-            print(symbol)
-            url = f'https://www.alphavantage.co/query?function=TIME_SERIES_MONTHLY&symbol={symbol}&apikey=S1T4GAWWNLWYKAMF'
-            r = requests.get(url)
-            data = r.json()
-            df = pd.DataFrame.from_dict(data['Monthly Time Series'], orient='index')
-            df.rename(columns={"4. close": symbol}, inplace=True)
-            df.drop(columns=["1. open","2. high","3. low","5. volume"], inplace=True)
-            df['date'] = df.index
-            df['date'] = pd.to_datetime(df['date'])
-            df = df[(df['date'] >= start) & (df['date'] <= end)]
-            stocks.append(df)
+    e = len(df_companies)
 
-            
-        # time.sleep(65)
+    try:
+        for i in range(0,e//5, 5):
+            for j in range(i, i+5):
+                symbol = df_companies['Ticker'].to_list()[j]
+                print(symbol)
+                url = f'https://www.alphavantage.co/query?function=TIME_SERIES_MONTHLY&symbol={symbol}&apikey=S1T4GAWWNLWYKAMF'
+                r = requests.get(url)
+                data = r.json()
+                df = pd.DataFrame.from_dict(data['Monthly Time Series'], orient='index')
+                df.rename(columns={"4. close": symbol}, inplace=True)
+                df.drop(columns=["1. open","2. high","3. low","5. volume"], inplace=True)
+                df['date'] = df.index
+                df['date'] = pd.to_datetime(df['date'])
+                df = df[(df['date'] >= start) & (df['date'] <= end)]
+                stocks.append(df)
+            time.sleep(65)
         # save to csv
         # df_stock.to_csv("Stocks/{}.csv".format(i))
-    stocks = utils.remove_day_from_date(stocks)
-    df_stock = reduce(lambda left,right: pd.merge(left,right,on='date'), stocks)
+    except:
+        stocks = utils.remove_day_from_date(stocks)
+        df_stock = reduce(lambda left,right: pd.merge(left,right,on='date'), stocks)
     
 
     return df_companies, df_stock
@@ -109,7 +109,7 @@ def get_mei_data(start_date, end_date):
         OFFSET += LIMIT
         dfs.append(utils.combine_datasets(df_mei))
         df_mei = utils.get_mei(start=start_date, end=end_date, limit=LIMIT, offset=OFFSET)
-        print("Done with {} datasets".format(20*(i+1)))
+        print("Done with {} datasets".format(LIMIT*(i+1)))
         i += 1
     df = reduce(lambda left,right: pd.merge(left,right,on="date"), dfs)
     return df
